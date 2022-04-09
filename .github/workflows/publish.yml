@@ -21,6 +21,7 @@ jobs:
         run: pnpm install
       - name: Build Typescript
         run: pnpm build
-       - uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
