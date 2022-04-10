@@ -48,8 +48,23 @@ export class Robot extends EventEmitter {
   private server: Socket;
   private peerDiscoveryInterval?: NodeJS.Timer;
   private disconnectionTestInterval?: NodeJS.Timer;
+  private peerIp?: string;
   connected = false;
   private lastReccieved = 0;
+
+  private findPeer() {
+    const possibleAddresses = [
+      "192.168.43.1" /* Rev Control Hub as Robot Controller */,
+      "192.168.49.1" /* Android Phone as Robot Controller*/,
+    ];
+    possibleAddresses.forEach((address) => {
+      this.server.send(
+        new PeerDiscoveryMessage(PeerType.PEER, 0).toBuffer(),
+        20884,
+        address
+      );
+    });
+  }
 
   public connect() {
     this.disconnectionTestInterval = setInterval(() => {
@@ -58,18 +73,12 @@ export class Robot extends EventEmitter {
         this.lastReccieved = 0;
         this.emit(RobotEvent.CONNECTION, false);
         // Restart sending Peer Discovery since user did not request disconnect
-        this.peerDiscoveryInterval = setInterval(
-          () => this.send(new PeerDiscoveryMessage(PeerType.PEER, 0)),
-          5000
-        );
+        this.peerDiscoveryInterval = setInterval(this.findPeer, 5000);
       }
     }, 5000);
     this.server.bind(20884);
-    this.send(new PeerDiscoveryMessage(PeerType.PEER, 0));
-    this.peerDiscoveryInterval = setInterval(
-      () => this.send(new PeerDiscoveryMessage(PeerType.PEER, 0)),
-      5000
-    );
+    this.findPeer();
+    this.peerDiscoveryInterval = setInterval(this.findPeer, 5000);
   }
 
   constructor() {
@@ -81,11 +90,13 @@ export class Robot extends EventEmitter {
       this.server.close();
     });
 
-    this.server.on("message", (msg) => {
+    this.server.on("message", (msg, rinfo) => {
       this.lastReccieved = Date.now();
       try {
         const message = messageFromBuffer(msg);
+        console.log(message);
         if (message instanceof PeerDiscoveryMessage) {
+          this.peerIp = rinfo.address;
           this.emit(RobotEvent.CONNECTION, true);
           this.connected = true;
           clearInterval(this.peerDiscoveryInterval!);
@@ -129,12 +140,8 @@ export class Robot extends EventEmitter {
     });
   }
 
-  public sendHex(hex: string) {
-    this.server.send(Buffer.from(hex, "hex"), 20884, "192.168.49.1");
-  }
-
   public send(message: Message) {
-    this.server.send(message.toBuffer(), 20884, "192.168.49.1");
+    this.server.send(message.toBuffer(), 20884, this.peerIp);
   }
 
   public close() {
