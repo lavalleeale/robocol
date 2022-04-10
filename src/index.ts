@@ -47,9 +47,23 @@ export interface Robot {
 export class Robot extends EventEmitter {
   private server: Socket;
   private peerDiscoveryInterval?: NodeJS.Timer;
+  private disconnectionTestInterval?: NodeJS.Timer;
   connected = false;
+  private lastReccieved = 0;
 
   public connect() {
+    this.disconnectionTestInterval = setInterval(() => {
+      // 10 seconds seems like a good value for now, even robot restarts would take less than 5 seconds during tests
+      if (this.lastReccieved !== 0 && Date.now() - this.lastReccieved > 10000) {
+        this.lastReccieved = 0;
+        this.emit(RobotEvent.CONNECTION, false);
+        // Restart sending Peer Discovery since user did not request disconnect
+        this.peerDiscoveryInterval = setInterval(
+          () => this.send(new PeerDiscoveryMessage(PeerType.PEER, 0)),
+          5000
+        );
+      }
+    }, 5000);
     this.server.bind(20884);
     this.send(new PeerDiscoveryMessage(PeerType.PEER, 0));
     this.peerDiscoveryInterval = setInterval(
@@ -68,6 +82,7 @@ export class Robot extends EventEmitter {
     });
 
     this.server.on("message", (msg) => {
+      this.lastReccieved = Date.now();
       try {
         const message = messageFromBuffer(msg);
         if (message instanceof PeerDiscoveryMessage) {
@@ -82,8 +97,7 @@ export class Robot extends EventEmitter {
               Date.now()
             )
           );
-        }
-        if (message instanceof TelemetryMessage) {
+        } else if (message instanceof TelemetryMessage) {
           this.emit(RobotEvent.TELEMETRY, message);
         } else if (message instanceof CommandMessage) {
           if (!message.acknowledged) {
@@ -106,6 +120,8 @@ export class Robot extends EventEmitter {
             default:
               break;
           }
+        } else {
+          console.log(message);
         }
       } catch (e) {
         console.log(e);
@@ -122,6 +138,9 @@ export class Robot extends EventEmitter {
   }
 
   public close() {
+    if (this.peerDiscoveryInterval) clearInterval(this.peerDiscoveryInterval);
+    if (this.disconnectionTestInterval)
+      clearInterval(this.disconnectionTestInterval);
     this.emit(RobotEvent.CONNECTION, true);
     this.connected = false;
     this.server.close();
