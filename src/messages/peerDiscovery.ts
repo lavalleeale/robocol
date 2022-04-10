@@ -1,6 +1,9 @@
 import config from "../config";
 import Message, { MsgType } from "./base";
-
+/**
+ * Class representing peer discovery, mostly used for internal use during {@link Robot#connect}
+ * @extends Message
+ */
 class PeerDiscoveryMessage implements Message {
   msgType = MsgType.PEER_DISCOVERY;
   peerType: PeerType;
@@ -46,6 +49,10 @@ class PeerDiscoveryMessage implements Message {
     return buffer;
   }
 
+  /**
+   * @param peerType The type of peer to be broadcasted
+   * @param seqNum Any integer, RobotCore does not seem to care what it is
+   */
   constructor(peerType: PeerType, seqNum: number) {
     this.seqNum = seqNum;
     this.peerType = peerType;

@@ -1,6 +1,10 @@
 import { RobotCommand } from "../robotCommands";
 import Message, { MsgType } from "./base";
 
+/**
+ * A class used to represent a command to be sent to the robot
+ * @extends Message
+ */
 export default class CommandMessage implements Message {
   msgType = MsgType.COMMAND;
   seqNum: number;
@@ -36,6 +40,14 @@ export default class CommandMessage implements Message {
     );
   }
 
+  /**
+   *
+   * @param name The command to be send to the robot for execution
+   * @param seqNum Any integer, RobotCore does not seem to care what it is
+   * @param acknowledged Should be false so that the Robot Controller acknowledges and executes the message
+   * @param timestamp The time at which the message was sent
+   * @param extra Any extra information that the command might need such as OpMode name
+   */
   constructor(
     name: RobotCommand,
     seqNum: number,

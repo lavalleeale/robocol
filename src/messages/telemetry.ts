@@ -1,5 +1,9 @@
 import Message, { MsgType } from "./base";
 
+/**
+ * A class used to represent telemetry data reccieved from the robot
+ * @extends Message
+ */
 class TelemetryMessage implements Message {
   msgType = MsgType.TELEMETRY;
   timestamp: Date;

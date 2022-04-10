@@ -25,12 +25,22 @@ export type controller = {
   updatedAt: number;
 };
 
+/**
+ * A class used to represent a gamepad state to be sent to the robot
+ * @extends Message
+ */
 export default class GamepadMessage implements Message {
   msgType = MsgType.GAMEPAD;
   seqNum: number;
   gamepad: controller;
   user: 1 | 2;
 
+  /**
+   *
+   * @param seqNum Any integer, RobotCore does not seem to care what it is
+   * @param gamepad The gamepad data to be sent to the robot
+   * @param user Weather the gamepad data is for controller 1 or 2
+   */
   constructor(seqNum: number, gamepad: controller, user: 1 | 2) {
     this.seqNum = seqNum;
     this.gamepad = gamepad;
